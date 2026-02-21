@@ -26,6 +26,29 @@ A locally hosted web app for practicing and quizzing hiragana and katakana. Buil
 - `server/` – Express API + Socket.io
 - `data/kana.json` – Hiragana & katakana data
 
-## Hosting from your machine
+## Hosting from your machine (for Versus mode)
 
-Run `npm run build` then `npm start`. Serve the built app from Express (configure later) and use your local IP so your friend can connect (e.g. `http://YOUR_IP:3000`). Port forwarding or ngrok required if they’re on another network.
+To allow another user to connect for Versus mode:
+
+### Option 1: Same local network (Wi-Fi)
+1. Find your local IP address:
+   - Windows: `ipconfig` (look for IPv4 Address)
+   - Mac/Linux: `ifconfig` or `ip addr`
+2. Start the server: `npm run dev`
+3. Friend connects to: `http://YOUR_LOCAL_IP:5173` (e.g., `http://192.168.1.100:5173`)
+
+### Option 2: Different networks (Internet)
+1. **Port forwarding** (router setup):
+   - Forward port 3000 (and 5173 for dev) to your machine's local IP
+   - Friend connects to: `http://YOUR_PUBLIC_IP:5173`
+2. **ngrok** (easiest for testing):
+   - Install: `npm install -g ngrok`
+   - Run: `ngrok http 5173`
+   - Share the ngrok URL with your friend
+
+### Option 3: Production build
+1. Build: `npm run build`
+2. Update server to serve static files (configure Express to serve `client/dist`)
+3. Friend connects to your server IP/domain
+
+**Note:** The server CORS is configured to allow all origins, so external connections work.

@@ -13,19 +13,60 @@ const shuffleArray = (array) => {
   return shuffled
 }
 
-export default function Quiz({ kana }) {
+const getHintRevealOrder = (word) => {
+  const indices = [...Array(word.length)].map((_, i) => i)
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[indices[i], indices[j]] = [indices[j], indices[i]]
+  }
+  return indices
+}
+
+function buildKanaList(kana, mode, options) {
+  const base = mode === 'hiragana' ? (kana.hiragana || []) : (kana.katakana || [])
+  if (!options) return base
+  let list = [...base]
+  if (options.dakuten) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_dakuten || []) : (kana.katakana_dakuten || [])
+    list = list.concat(extra)
+  }
+  if (options.combination) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_combination || []) : (kana.katakana_combination || [])
+    list = list.concat(extra)
+  }
+  return list
+}
+
+export default function Quiz({ kana, quizOptions }) {
   const [mode, setMode] = useState('hiragana')
   const [index, setIndex] = useState(0)
   const [input, setInput] = useState('')
   const [flashClass, setFlashClass] = useState('')
+  const [hintLevel, setHintLevel] = useState(0)
 
   const shuffledList = useMemo(() => {
-    const list = mode === 'hiragana' ? kana.hiragana : kana.katakana
+    const list = buildKanaList(kana, mode, quizOptions)
     return shuffleArray(list)
-  }, [mode, kana])
+  }, [mode, kana, quizOptions])
 
   const current = shuffledList[index]
   const total = shuffledList.length
+
+  const hintOrder = useMemo(
+    () => (current ? getHintRevealOrder(current.romaji) : []),
+    [current?.char]
+  )
+
+  useEffect(() => {
+    setHintLevel(0)
+  }, [current?.char])
+
+  const hintDisplay = useMemo(() => {
+    if (!current || hintLevel === 0) return null
+    const word = current.romaji
+    const revealed = new Set(hintOrder.slice(0, hintLevel))
+    return word.split('').map((c, i) => (revealed.has(i) ? c : '_')).join('')
+  }, [current, hintLevel, hintOrder])
 
   const check = useCallback(() => {
     if (!current) return
@@ -36,6 +77,7 @@ export default function Quiz({ kana }) {
       setTimeout(() => {
         setInput('')
         setFlashClass('')
+        setHintLevel(0)
         setIndex((i) => (i + 1) % total)
       }, 400)
     } else {
@@ -54,6 +96,7 @@ export default function Quiz({ kana }) {
     setIndex(0)
     setInput('')
     setFlashClass('')
+    setHintLevel(0)
   }
 
   if (!shuffledList.length) return null
@@ -93,6 +136,18 @@ export default function Quiz({ kana }) {
             autoComplete="off"
             autoFocus
           />
+        </div>
+        <div className="quiz-hint-row">
+          <button
+            type="button"
+            className="quiz-hint-button"
+            onClick={() => setHintLevel((l) => Math.min(l + 1, current.romaji.length))}
+          >
+            Hint
+          </button>
+          {hintDisplay != null && (
+            <span className="quiz-hint-display">{hintDisplay}</span>
+          )}
         </div>
       </div>
     </div>

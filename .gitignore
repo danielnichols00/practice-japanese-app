@@ -56,3 +56,6 @@ target/
 *.tmp
 *.temp
 .cache/
+
+# Local SQLite leaderboard (optional: remove to commit scores)
+data/leaderboard.db
