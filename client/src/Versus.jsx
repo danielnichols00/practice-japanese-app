@@ -13,6 +13,21 @@ const shuffleArray = (array) => {
   return shuffled
 }
 
+const buildKanaList = (kana, mode, options) => {
+  const base = mode === 'hiragana' ? (kana.hiragana || []) : (kana.katakana || [])
+  if (!options) return base
+  let list = [...base]
+  if (options.dakuten) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_dakuten || []) : (kana.katakana_dakuten || [])
+    list = list.concat(extra)
+  }
+  if (options.combination) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_combination || []) : (kana.katakana_combination || [])
+    list = list.concat(extra)
+  }
+  return list
+}
+
 export default function Versus({ kana, socket }) {
   const [mode, setMode] = useState('hiragana')
   const [index, setIndex] = useState(0)
@@ -22,11 +37,17 @@ export default function Versus({ kana, socket }) {
   const [countdown, setCountdown] = useState(null)
   const [gameStarted, setGameStarted] = useState(false)
   const [roomId, setRoomId] = useState(null)
+  const [dakuten, setDakuten] = useState(false)
+  const [combo, setCombo] = useState(false)
+  const [mismatch, setMismatch] = useState(false)
 
   const shuffledList = useMemo(() => {
-    const list = mode === 'hiragana' ? kana.hiragana : kana.katakana
+    const list = buildKanaList(kana, mode, {
+      dakuten: dakuten || combo,
+      combination: combo,
+    })
     return shuffleArray(list)
-  }, [mode, kana])
+  }, [mode, kana, dakuten, combo])
 
   const current = shuffledList[index]
   const total = shuffledList.length
@@ -55,6 +76,13 @@ export default function Versus({ kana, socket }) {
     socket.on('game-start', () => {
       setGameStarted(true)
       setCountdown(null)
+      setMismatch(false)
+    })
+
+    socket.on('settings-mismatch', () => {
+      setMismatch(true)
+      setReady(false)
+      setOpponentReady(false)
     })
 
     return () => {
@@ -63,8 +91,14 @@ export default function Versus({ kana, socket }) {
       socket.off('countdown-start')
       socket.off('countdown-tick')
       socket.off('game-start')
+      socket.off('settings-mismatch')
     }
   }, [socket])
+
+  useEffect(() => {
+    const variant = combo ? 'dakuten_combo' : dakuten ? 'dakuten' : 'basic'
+    socket.emit('versus-settings', { variant })
+  }, [socket, dakuten, combo])
 
   const handleReady = () => {
     const newReady = !ready
@@ -100,6 +134,27 @@ export default function Versus({ kana, socket }) {
           <h2 className="versus-title">Versus Mode</h2>
           {roomId && <p className="versus-room">Room: {roomId}</p>}
           
+          <div className="versus-options">
+            <label className="versus-option-label">
+              <input
+                type="checkbox"
+                checked={dakuten}
+                onChange={(e) => setDakuten(e.target.checked)}
+                disabled={ready || countdown !== null}
+              />
+              <span>Dakuten</span>
+            </label>
+            <label className="versus-option-label">
+              <input
+                type="checkbox"
+                checked={combo}
+                onChange={(e) => setCombo(e.target.checked)}
+                disabled={ready || countdown !== null}
+              />
+              <span>Dakuten + combinations</span>
+            </label>
+          </div>
+
           <div className="versus-ready-section">
             <button
               className={`versus-ready-button ${ready ? 'ready' : ''}`}
@@ -110,18 +165,17 @@ export default function Versus({ kana, socket }) {
             </button>
             
             <div className="versus-status">
-              {!ready && !opponentReady && (
+              {mismatch ? (
+                <p className="waiting">Settings mismatch. Both players must use the same kana options.</p>
+              ) : !ready && !opponentReady ? (
                 <p>Click "Ready Up" when you're ready to start</p>
-              )}
-              {ready && !opponentReady && (
+              ) : ready && !opponentReady ? (
                 <p className="waiting">Waiting for opponent...</p>
-              )}
-              {!ready && opponentReady && (
+              ) : !ready && opponentReady ? (
                 <p className="waiting">Other user isn't ready</p>
-              )}
-              {ready && opponentReady && countdown === null && (
+              ) : ready && opponentReady && countdown === null ? (
                 <p className="both-ready">Both players ready! Starting soon...</p>
-              )}
+              ) : null}
             </div>
 
             {countdown !== null && (

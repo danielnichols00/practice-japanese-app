@@ -25,10 +25,16 @@ try {
       player_name TEXT NOT NULL,
       time_ms INTEGER NOT NULL,
       kana_set TEXT NOT NULL DEFAULT 'hiragana',
+      variant TEXT NOT NULL DEFAULT 'basic',
       created_at INTEGER DEFAULT (strftime('%s', 'now'))
     );
     CREATE INDEX IF NOT EXISTS idx_leaderboard_time ON leaderboard(time_ms);
   `)
+  try {
+    db.exec(`ALTER TABLE leaderboard ADD COLUMN variant TEXT NOT NULL DEFAULT 'basic'`)
+  } catch (e) {
+    // ignore if column already exists
+  }
   console.log('SQLite leaderboard ready')
 } catch (err) {
   console.warn('SQLite unavailable, leaderboard disabled:', err.message)
@@ -65,7 +71,7 @@ app.get('/api/leaderboard', (req, res) => {
     const kanaSet = req.query.kana_set || 'hiragana'
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100)
     const rows = db.prepare(`
-      SELECT id, player_name, time_ms, kana_set, created_at
+      SELECT id, player_name, time_ms, kana_set, variant, created_at
       FROM leaderboard
       WHERE kana_set = ?
       ORDER BY time_ms ASC
@@ -80,16 +86,16 @@ app.get('/api/leaderboard', (req, res) => {
 app.post('/api/leaderboard', (req, res) => {
   if (!db) return res.status(503).json({ error: 'Leaderboard unavailable' })
   try {
-    const { player_name, time_ms, kana_set = 'hiragana' } = req.body
+    const { player_name, time_ms, kana_set = 'hiragana', variant = 'basic' } = req.body
     if (player_name == null || time_ms == null || typeof time_ms !== 'number') {
       return res.status(400).json({ error: 'player_name and time_ms required' })
     }
     const name = String(player_name).trim().slice(0, 32) || 'Anonymous'
     const stmt = db.prepare(`
-      INSERT INTO leaderboard (player_name, time_ms, kana_set) VALUES (?, ?, ?)
+      INSERT INTO leaderboard (player_name, time_ms, kana_set, variant) VALUES (?, ?, ?, ?)
     `)
-    stmt.run(name, time_ms, kana_set)
-    console.log('Leaderboard saved:', { name, time_ms, kana_set })
+    stmt.run(name, time_ms, kana_set, variant)
+    console.log('Leaderboard saved:', { name, time_ms, kana_set, variant })
     res.status(201).json({ ok: true })
   } catch (err) {
     console.error('Leaderboard save error:', err)
@@ -117,7 +123,7 @@ app.delete('/api/leaderboard', (req, res) => {
   }
 })
 
-const rooms = new Map() // roomId -> { players: Set, ready: Map<socketId, boolean>, countdown: null/boolean, countdownInterval: null/Interval }
+const rooms = new Map() // roomId -> { players: Set, ready: Map<socketId, boolean>, settings: Map<socketId, string>, countdown: null/boolean, countdownInterval: null/Interval }
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id)
@@ -138,6 +144,7 @@ io.on('connection', (socket) => {
       rooms.set(roomId, {
         players: new Set(),
         ready: new Map(),
+        settings: new Map(),
         countdown: null,
         countdownInterval: null
       })
@@ -157,6 +164,14 @@ io.on('connection', (socket) => {
     }
   })
 
+  socket.on('versus-settings', ({ variant }) => {
+    const roomId = Array.from(socket.rooms).find(r => r.startsWith('room-'))
+    if (!roomId) return
+    const room = rooms.get(roomId)
+    if (!room) return
+    room.settings.set(socket.id, variant || 'basic')
+  })
+
   socket.on('ready-up', ({ ready }) => {
     const roomId = Array.from(socket.rooms).find(r => r.startsWith('room-'))
     if (!roomId) return
@@ -171,6 +186,14 @@ io.on('connection', (socket) => {
     
     // Check if both ready
     if (room.players.size === 2) {
+      // Settings must match
+      if (room.settings && room.settings.size === 2) {
+        const variants = Array.from(room.settings.values())
+        if (variants[0] !== variants[1]) {
+          io.to(roomId).emit('settings-mismatch')
+          return
+        }
+      }
       const allReady = Array.from(room.ready.values()).every(r => r === true)
       
       if (allReady && !room.countdown) {

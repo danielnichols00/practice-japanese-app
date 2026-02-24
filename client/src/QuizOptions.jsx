@@ -25,7 +25,7 @@ export default function QuizOptions({ onStart }) {
               checked={combination}
               onChange={(e) => setCombination(e.target.checked)}
             />
-            <span>Include combination kana (e.g. きゃ, しゅ, ちゃ)</span>
+            <span>Include dakuten + combinations (e.g. きゃ, しゅ, ちゃ)</span>
           </label>
         </div>
         <button

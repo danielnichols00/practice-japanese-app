@@ -47,6 +47,10 @@ export default function Leaderboard({ kanaSet = 'hiragana', collapsed: controlle
     }
   }
 
+  const basic = entries.filter((e) => !e.variant || e.variant === 'basic')
+  const dakutenOnly = entries.filter((e) => e.variant === 'dakuten')
+  const dakutenCombo = entries.filter((e) => e.variant === 'dakuten_combo')
+
   return (
     <div className={`leaderboard ${isCollapsed ? 'collapsed' : ''}`}>
       <button
@@ -71,19 +75,50 @@ export default function Leaderboard({ kanaSet = 'hiragana', collapsed: controlle
           {loading ? (
             <p className="leaderboard-loading">Loading…</p>
           ) : (
-            <ol className="leaderboard-list">
-              {entries.length === 0 ? (
-                <li className="leaderboard-empty">No scores yet</li>
-              ) : (
-                entries.map((row, i) => (
-                  <li key={row.id} className="leaderboard-item">
-                    <span className="leaderboard-rank">{i + 1}</span>
-                    <span className="leaderboard-name">{row.player_name}</span>
-                    <span className="leaderboard-time">{formatTime(row.time_ms)}</span>
-                  </li>
-                ))
-              )}
-            </ol>
+            <>
+              <h4 className="leaderboard-section-title">Basic</h4>
+              <ol className="leaderboard-list">
+                {basic.length === 0 ? (
+                  <li className="leaderboard-empty">No scores yet</li>
+                ) : (
+                  basic.map((row, i) => (
+                    <li key={row.id} className="leaderboard-item">
+                      <span className="leaderboard-rank">{i + 1}</span>
+                      <span className="leaderboard-name">{row.player_name}</span>
+                      <span className="leaderboard-time">{formatTime(row.time_ms)}</span>
+                    </li>
+                  ))
+                )}
+              </ol>
+              <h4 className="leaderboard-section-title">Dakuten</h4>
+              <ol className="leaderboard-list">
+                {dakutenOnly.length === 0 ? (
+                  <li className="leaderboard-empty">No scores yet</li>
+                ) : (
+                  dakutenOnly.map((row, i) => (
+                    <li key={row.id} className="leaderboard-item">
+                      <span className="leaderboard-rank">{i + 1}</span>
+                      <span className="leaderboard-name">{row.player_name}</span>
+                      <span className="leaderboard-time">{formatTime(row.time_ms)}</span>
+                    </li>
+                  ))
+                )}
+              </ol>
+              <h4 className="leaderboard-section-title">Dakuten + combinations</h4>
+              <ol className="leaderboard-list">
+                {dakutenCombo.length === 0 ? (
+                  <li className="leaderboard-empty">No scores yet</li>
+                ) : (
+                  dakutenCombo.map((row, i) => (
+                    <li key={row.id} className="leaderboard-item">
+                      <span className="leaderboard-rank">{i + 1}</span>
+                      <span className="leaderboard-name">{row.player_name}</span>
+                      <span className="leaderboard-time">{formatTime(row.time_ms)}</span>
+                    </li>
+                  ))
+                )}
+              </ol>
+            </>
           )}
         </div>
       )}

@@ -15,6 +15,21 @@ const shuffleArray = (array) => {
   return shuffled
 }
 
+const buildKanaList = (kana, mode, options) => {
+  const base = mode === 'hiragana' ? (kana.hiragana || []) : (kana.katakana || [])
+  if (!options) return base
+  let list = [...base]
+  if (options.dakuten) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_dakuten || []) : (kana.katakana_dakuten || [])
+    list = list.concat(extra)
+  }
+  if (options.combination) {
+    const extra = mode === 'hiragana' ? (kana.hiragana_combination || []) : (kana.katakana_combination || [])
+    list = list.concat(extra)
+  }
+  return list
+}
+
 export default function TimeTrial({ kana }) {
   const [playerName, setPlayerName] = useState('')
   const [playerNameSubmitted, setPlayerNameSubmitted] = useState(false)
@@ -29,11 +44,16 @@ export default function TimeTrial({ kana }) {
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false)
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0)
   const startTimeRef = useRef(null)
+  const [dakuten, setDakuten] = useState(false)
+  const [combo, setCombo] = useState(false)
 
   const shuffledList = useMemo(() => {
-    const list = mode === 'hiragana' ? kana.hiragana : kana.katakana
+    const list = buildKanaList(kana, mode, {
+      dakuten: dakuten || combo,
+      combination: combo,
+    })
     return shuffleArray(list)
-  }, [mode, kana])
+  }, [mode, kana, dakuten, combo])
 
   const current = shuffledList[index]
   const total = shuffledList.length
@@ -70,6 +90,7 @@ export default function TimeTrial({ kana }) {
           setEndTime(finishedAt)
           setTimerStopped(true)
           const finalTime = startTimeRef.current ? finishedAt - startTimeRef.current : 0
+          const variant = combo ? 'dakuten_combo' : dakuten ? 'dakuten' : 'basic'
           fetch('/api/leaderboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -77,6 +98,7 @@ export default function TimeTrial({ kana }) {
               player_name: (playerName && playerName.trim()) || 'Anonymous',
               time_ms: Number(finalTime),
               kana_set: mode,
+              variant,
             }),
           })
             .then(async (res) => {
@@ -155,6 +177,26 @@ export default function TimeTrial({ kana }) {
               ) : (
                 <span className="time-trial-timer-idle">0.0s</span>
               )}
+            </div>
+            <div className="time-trial-options">
+              <label className="time-trial-option-label">
+                <input
+                  type="checkbox"
+                  checked={dakuten}
+                  onChange={(e) => setDakuten(e.target.checked)}
+                  disabled={timerStarted && !timerStopped}
+                />
+                <span>Dakuten</span>
+              </label>
+              <label className="time-trial-option-label">
+                <input
+                  type="checkbox"
+                  checked={combo}
+                  onChange={(e) => setCombo(e.target.checked)}
+                  disabled={timerStarted && !timerStopped}
+                />
+                <span>Dakuten + combinations</span>
+              </label>
             </div>
           </div>
 

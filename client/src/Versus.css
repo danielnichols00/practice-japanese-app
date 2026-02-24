@@ -11,6 +11,27 @@
   text-align: center;
 }
 
+.versus-options {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.875rem;
+  color: #a1a1aa;
+}
+
+.versus-option-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.versus-option-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #3b82f6;
+}
+
 .versus-title {
   margin: 0 0 1rem;
   font-size: 1.5rem;

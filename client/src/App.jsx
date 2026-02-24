@@ -71,7 +71,16 @@ export default function App() {
           />
         )}
         {currentMode === 'quiz' && quizOptions === null && (
-          <QuizOptions onStart={(dakuten, combination) => setQuizOptions({ dakuten, combination })} />
+          <QuizOptions
+            onStart={(dakuten, combination) => {
+              const variant = combination ? 'dakuten_combo' : dakuten ? 'dakuten' : 'basic'
+              setQuizOptions({
+                dakuten: dakuten || combination,
+                combination,
+                variant,
+              })
+            }}
+          />
         )}
         {currentMode === 'quiz' && quizOptions !== null && (
           <Quiz kana={kana} quizOptions={quizOptions} />
