@@ -8,8 +8,8 @@
 }
 
 .leaderboard.collapsed {
-  width: 48px;
-  min-width: 48px;
+  width: auto;
+  min-width: 0;
 }
 
 .leaderboard-toggle {
@@ -31,12 +31,11 @@
 }
 
 .leaderboard.collapsed .leaderboard-toggle {
-  border-bottom: none;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  padding: 1rem 0.5rem;
-  transform: rotate(180deg);
-  height: 100%;
+  border-bottom: 1px solid #27272a;
+  writing-mode: horizontal-tb;
+  padding: 0.75rem 1rem;
+  transform: none;
+  height: auto;
 }
 
 .leaderboard-panel {
@@ -44,6 +43,14 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
+}
+
+.leaderboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .leaderboard-title {
@@ -57,6 +64,23 @@
   margin: 0 0 1rem;
   font-size: 0.8125rem;
   color: #71717a;
+}
+
+.leaderboard-clear {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #3f3f46;
+  background: #18181b;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.leaderboard-clear:hover {
+  background: #3f3f46;
+  color: #e4e4e7;
+  border-color: #52525b;
 }
 
 .leaderboard-loading,

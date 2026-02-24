@@ -25,6 +25,28 @@ export default function Leaderboard({ kanaSet = 'hiragana', collapsed: controlle
       .finally(() => setLoading(false))
   }, [kanaSet, refreshKey])
 
+  const handleClear = async () => {
+    const pwd = window.prompt('Enter admin password to clear leaderboard:')
+    if (!pwd) return
+    try {
+      const res = await fetch('/api/leaderboard', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd }),
+      })
+      if (res.ok) {
+        setEntries([])
+      } else {
+        const text = await res.text()
+        window.alert('Failed to clear leaderboard.')
+        console.warn('Clear leaderboard failed', res.status, text)
+      }
+    } catch (err) {
+      console.warn('Clear leaderboard error', err)
+      window.alert('Failed to clear leaderboard.')
+    }
+  }
+
   return (
     <div className={`leaderboard ${isCollapsed ? 'collapsed' : ''}`}>
       <button
@@ -37,8 +59,15 @@ export default function Leaderboard({ kanaSet = 'hiragana', collapsed: controlle
       </button>
       {!isCollapsed && (
         <div className="leaderboard-panel">
-          <h3 className="leaderboard-title">Time Trial</h3>
-          <p className="leaderboard-subtitle">{kanaSet === 'hiragana' ? 'Hiragana' : 'Katakana'}</p>
+          <div className="leaderboard-header">
+            <div>
+              <h3 className="leaderboard-title">Time Trial</h3>
+              <p className="leaderboard-subtitle">{kanaSet === 'hiragana' ? 'Hiragana' : 'Katakana'}</p>
+            </div>
+            <button type="button" className="leaderboard-clear" onClick={handleClear}>
+              Clear
+            </button>
+          </div>
           {loading ? (
             <p className="leaderboard-loading">Loading…</p>
           ) : (

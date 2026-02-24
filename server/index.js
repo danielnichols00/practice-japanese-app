@@ -101,6 +101,22 @@ app.get('/api/leaderboard/status', (req, res) => {
   res.json({ db: db !== null })
 })
 
+app.delete('/api/leaderboard', (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Leaderboard unavailable' })
+  const { password } = req.body || {}
+  if (password !== 'carrot') {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+  try {
+    db.exec('DELETE FROM leaderboard')
+    console.log('Leaderboard cleared')
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Leaderboard clear error:', err)
+    res.status(500).json({ error: 'Failed to clear leaderboard' })
+  }
+})
+
 const rooms = new Map() // roomId -> { players: Set, ready: Map<socketId, boolean>, countdown: null/boolean, countdownInterval: null/Interval }
 
 io.on('connection', (socket) => {
